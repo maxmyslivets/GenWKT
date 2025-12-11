@@ -110,7 +110,7 @@ class ParameterEstimator:
             logger.exception("Ошибка в apply_helmert")
             raise
 
-    def generate_wkt(self, params, cm_deg, fe, fn, scale, lat0, use_geoid=False):
+    def generate_wkt(self, params, cm_deg, fe, fn, scale, lat0, use_geoid=False, crs_name="unknown"):
         """
         Генерация строки WKT для рассчитанных параметров.
         """
@@ -127,8 +127,8 @@ class ParameterEstimator:
             rz = params['Rz']
             
             # Базовая строка PROJCS
-            projcs = f'''PROJCS["unknown",
-    GEOGCS["unknown",
+            projcs = f'''PROJCS["{crs_name}",
+    GEOGCS["{crs_name}",
         DATUM["Krassovsky, 1942",
             SPHEROID["Krassovsky, 1942",6378245,298.3],
             TOWGS84[{tx:.9f},{ty:.9f},{tz:.9f},{rx:.9f},{ry:.9f},{rz:.9f},{s:.9f}]],
@@ -148,7 +148,7 @@ class ParameterEstimator:
     AXIS["Northing",NORTH]]'''
 
             if use_geoid:
-                wkt = f'''COMPD_CS["unknown + EGM2008 geoid height",
+                wkt = f'''COMPD_CS["{crs_name} + EGM2008 geoid height",
 \t{projcs},
 \tVERT_CS["EGM2008 geoid height",
 \t\tVERT_DATUM["EGM2008  geoid",2005,AUTHORITY["EPSG","1027"]],

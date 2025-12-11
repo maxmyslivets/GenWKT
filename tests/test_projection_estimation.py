@@ -64,3 +64,22 @@ def test_estimate_projection_parameters():
     # Допуски для FE/FN увеличены, так как без учета Datum Shift они могут отличаться
     assert np.isclose(params['false_northing'], expected_fn, atol=10.0) 
     assert np.isclose(params['false_easting'], expected_fe, atol=10.0)
+
+def test_generate_wkt_custom_name():
+    estimator = ParameterEstimator()
+    params = {
+        "Tx": 0, "Ty": 0, "Tz": 0,
+        "Rx": 0, "Ry": 0, "Rz": 0,
+        "Scale_ppm": 0
+    }
+    cm_deg = 30.0
+    fe = 500000
+    fn = 0
+    scale = 1.0
+    lat0 = 0
+    
+    crs_name = "My Custom CRS"
+    wkt = estimator.generate_wkt(params, cm_deg, fe, fn, scale, lat0, crs_name=crs_name)
+    
+    assert f'PROJCS["{crs_name}"' in wkt
+    assert f'GEOGCS["{crs_name}"' in wkt

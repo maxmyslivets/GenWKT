@@ -1,9 +1,10 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, 
-                               QFrame, QCheckBox, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView)
+                               QFrame, QCheckBox, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QLineEdit)
 from PySide6.QtCore import Signal, Qt
 
 class ResultsWidget(QWidget):
     geoid_toggled = Signal(bool)
+    crs_name_changed = Signal(str)
     save_clicked = Signal()
 
     def __init__(self, parent=None):
@@ -51,6 +52,15 @@ class ResultsWidget(QWidget):
         
         # Панель управления WKT
         controls_layout = QHBoxLayout()
+        
+        controls_layout.addWidget(QLabel("Имя СК:"))
+        from PySide6.QtWidgets import QLineEdit
+        self.entry_crs_name = QLineEdit()
+        self.entry_crs_name.setPlaceholderText("unknown")
+        self.entry_crs_name.setFixedWidth(150)
+        self.entry_crs_name.textChanged.connect(self.crs_name_changed.emit)
+        controls_layout.addWidget(self.entry_crs_name)
+        
         self.chk_geoid = QCheckBox("Использовать геоид (EGM2008)")
         self.chk_geoid.toggled.connect(self.geoid_toggled.emit)
         controls_layout.addWidget(self.chk_geoid)

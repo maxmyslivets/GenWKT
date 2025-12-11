@@ -187,6 +187,7 @@ class MainWindow(QMainWindow):
         
         self.results_widget = ResultsWidget()
         self.results_widget.geoid_toggled.connect(self.on_geoid_toggled)
+        self.results_widget.crs_name_changed.connect(lambda _: self.update_wkt_display())
         self.results_widget.save_clicked.connect(self.on_save_wkt)
         right_layout.addWidget(self.results_widget)
         
@@ -341,11 +342,12 @@ class MainWindow(QMainWindow):
             return
             
         use_geoid = self.results_widget.chk_geoid.isChecked()
+        crs_name = self.results_widget.entry_crs_name.text().strip() or "unknown"
         data = self.last_calc_result
         
         wkt = self.estimator.generate_wkt(
             data["params"], data["cm_deg"], data["fe"], data["fn"], 
-            data["scale"], data["lat0"], use_geoid=use_geoid
+            data["scale"], data["lat0"], use_geoid=use_geoid, crs_name=crs_name
         )
         self.results_widget.set_wkt_text(wkt)
 
@@ -359,7 +361,15 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Внимание", "Нет данных WKT для сохранения")
             return
             
-        filename, _ = QFileDialog.getSaveFileName(self, "Сохранить WKT", "", "Projection Files (*.prj);;All Files (*)")
+        crs_name = self.results_widget.entry_crs_name.text().strip()
+        
+        base_name = crs_name if crs_name else "projection"
+        if self.results_widget.chk_geoid.isChecked():
+            base_name += "_egm2008"
+            
+        default_name = f"{base_name}.prj"
+            
+        filename, _ = QFileDialog.getSaveFileName(self, "Сохранить WKT", default_name, "Projection Files (*.prj);;All Files (*)")
         if filename:
             try:
                 with open(filename, 'w', encoding='utf-8') as f:
