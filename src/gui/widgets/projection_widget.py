@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QGridLayout, QLabel, QLineEdit, QGroupBox, QPushButton
+from PySide6.QtWidgets import QWidget, QGridLayout, QVBoxLayout, QLabel, QLineEdit, QFrame, QPushButton
 from PySide6.QtCore import Qt, Signal
 from src.config.loader import config
 
@@ -11,46 +11,61 @@ class ProjectionWidget(QWidget):
         self.load_defaults()
 
     def setup_ui(self):
-        layout = QGridLayout(self)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
         
-        group = QGroupBox("Параметры проекции МСК")
-        group_layout = QGridLayout(group)
+        # Card Frame
+        card = QFrame()
+        card.setObjectName("card_square")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(20, 20, 20, 20)
+        card_layout.setSpacing(15)
+        
+        # Title
+        title = QLabel("Параметры проекции МСК")
+        title.setStyleSheet("font-size: 16px; font-weight: bold; color: #FFFFFF;")
+        card_layout.addWidget(title)
+        
+        # Grid for inputs
+        grid = QGridLayout()
+        grid.setSpacing(15)
         
         # Row 0
-        group_layout.addWidget(QLabel("Осевой меридиан (ГГ ММ СС,сс):"), 0, 0)
+        grid.addWidget(QLabel("Осевой меридиан (ГГ ММ СС,сс):"), 0, 0)
         self.entry_cm = QLineEdit()
         self.entry_cm.setPlaceholderText("29 59 59,91779")
-        group_layout.addWidget(self.entry_cm, 0, 1)
+        grid.addWidget(self.entry_cm, 0, 1)
         
-        group_layout.addWidget(QLabel("Масштаб (Scale):"), 0, 2)
+        grid.addWidget(QLabel("Масштаб (Scale):"), 0, 2)
         self.entry_scale = QLineEdit()
         self.entry_scale.setPlaceholderText("1.0")
-        group_layout.addWidget(self.entry_scale, 0, 3)
+        grid.addWidget(self.entry_scale, 0, 3)
         
         # Row 1
-        group_layout.addWidget(QLabel("False Easting (м):"), 1, 0)
+        grid.addWidget(QLabel("False Easting (м):"), 1, 0)
         self.entry_fe = QLineEdit()
         self.entry_fe.setPlaceholderText("500000")
-        group_layout.addWidget(self.entry_fe, 1, 1)
+        grid.addWidget(self.entry_fe, 1, 1)
         
-        group_layout.addWidget(QLabel("False Northing (м):"), 1, 2)
+        grid.addWidget(QLabel("False Northing (м):"), 1, 2)
         self.entry_fn = QLineEdit()
         self.entry_fn.setPlaceholderText("0")
-        group_layout.addWidget(self.entry_fn, 1, 3)
+        grid.addWidget(self.entry_fn, 1, 3)
         
         # Row 2
-        group_layout.addWidget(QLabel("Широта начала (Lat0):"), 2, 0)
+        grid.addWidget(QLabel("Широта начала (Lat0):"), 2, 0)
         self.entry_lat0 = QLineEdit()
         self.entry_lat0.setPlaceholderText("0")
-        group_layout.addWidget(self.entry_lat0, 2, 1)
+        grid.addWidget(self.entry_lat0, 2, 1)
         
         # Row 3 - Кнопка автоопределения
         self.btn_auto = QPushButton("Авто-определение")
         self.btn_auto.setToolTip("Автоматически определить параметры проекции по введенным координатам")
         self.btn_auto.clicked.connect(self.auto_detect_clicked.emit)
-        group_layout.addWidget(self.btn_auto, 2, 3)
+        grid.addWidget(self.btn_auto, 2, 3)
         
-        layout.addWidget(group, 0, 0)
+        card_layout.addLayout(grid)
+        layout.addWidget(card)
 
         # Подключение сигналов для замены запятой на точку
         for entry in [self.entry_cm, self.entry_scale, self.entry_fe, self.entry_fn, self.entry_lat0]:

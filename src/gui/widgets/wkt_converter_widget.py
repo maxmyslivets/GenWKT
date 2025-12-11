@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                               QPushButton, QTextEdit, QLineEdit, QGroupBox, 
+                               QPushButton, QTextEdit, QLineEdit, QFrame, 
                                QFileDialog, QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView)
 from PySide6.QtCore import Qt
 from src.core.converter import CoordinateConverter
@@ -14,64 +14,92 @@ class WktConverterWidget(QWidget):
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(20)
         
         # 1. Секция ввода WKT
-        wkt_group = QGroupBox("Параметры WKT")
-        wkt_layout = QVBoxLayout(wkt_group)
+        card_wkt = QFrame()
+        card_wkt.setObjectName("card")
+        wkt_layout = QVBoxLayout(card_wkt)
+        wkt_layout.setContentsMargins(15, 15, 15, 15)
+        
+        wkt_header = QHBoxLayout()
+        wkt_title = QLabel("Параметры WKT")
+        wkt_title.setStyleSheet("font-weight: bold; color: #FFFFFF;")
+        wkt_header.addWidget(wkt_title)
+        wkt_header.addStretch()
+        btn_load_prj = QPushButton("Загрузить из .prj")
+        btn_load_prj.clicked.connect(self.load_from_prj)
+        wkt_header.addWidget(btn_load_prj)
+        wkt_layout.addLayout(wkt_header)
         
         self.wkt_edit = QTextEdit()
         self.wkt_edit.setPlaceholderText('Пример: PROJCS["Transverse_Mercator",GEOGCS["GCS_Pulkovo_1942",DATUM["D_Pulkovo_1942",SPHEROID["Krassowsky_1942",6378245.0,298.3]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",39.0],PARAMETER["Scale_Factor",1.0],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]')
-        self.wkt_edit.setMaximumHeight(150)
         wkt_layout.addWidget(self.wkt_edit)
         
-        btn_load_prj = QPushButton("Загрузить из .prj")
-        btn_load_prj.clicked.connect(self.load_from_prj)
-        wkt_layout.addWidget(btn_load_prj, alignment=Qt.AlignRight)
-        
-        layout.addWidget(wkt_group)
+        layout.addWidget(card_wkt)
         
         # 2. Секция ввода координат (WGS84)
-        input_group = QGroupBox("Координаты WGS84 (ID, Lat, Lon, H)")
-        input_layout = QVBoxLayout(input_group)
+        card_input = QFrame()
+        card_input.setObjectName("card")
+        input_layout = QVBoxLayout(card_input)
+        input_layout.setContentsMargins(15, 15, 15, 15)
+        
+        input_header = QHBoxLayout()
+        input_title = QLabel("Координаты WGS84 (ID, Lat, Lon, H)")
+        input_title.setStyleSheet("font-weight: bold; color: #FFFFFF;")
+        input_header.addWidget(input_title)
+        input_header.addStretch()
+        btn_load_file = QPushButton("Загрузить из файла")
+        btn_load_file.clicked.connect(self.load_coords_from_file)
+        input_header.addWidget(btn_load_file)
+        input_layout.addLayout(input_header)
         
         self.coords_input = QTextEdit()
         self.coords_input.setPlaceholderText("Введите координаты построчно (разделитель запятая или пробел):\n1,54.9183617,28.7378755,145\n2,54.8922442,28.7457653,147\n3,54.8688434,28.7250955,171")
         input_layout.addWidget(self.coords_input)
         
-        btn_load_file = QPushButton("Загрузить из файла")
-        btn_load_file.clicked.connect(self.load_coords_from_file)
-        input_layout.addWidget(btn_load_file, alignment=Qt.AlignRight)
-        
         # Лейбл предупреждения о высоте
         self.lbl_height_warning = QLabel("Высоты не пересчитывались, т.к. в WKT не описана вертикальная система координат")
-        self.lbl_height_warning.setStyleSheet("color: red; font-weight: bold;")
+        self.lbl_height_warning.setStyleSheet("color: #FF5555; font-weight: bold;")
         self.lbl_height_warning.setWordWrap(True)
         self.lbl_height_warning.setVisible(False)
         input_layout.addWidget(self.lbl_height_warning)
         
-        layout.addWidget(input_group)
+        layout.addWidget(card_input)
         
         # 3. Кнопка действия
         self.btn_convert = QPushButton("КОНВЕРТИРОВАТЬ")
         self.btn_convert.setFixedHeight(40)
+        self.btn_convert.setObjectName("actionButton")
         self.btn_convert.clicked.connect(self.convert)
         layout.addWidget(self.btn_convert)
         
         # 4. Секция результатов (МСК)
-        result_group = QGroupBox("Результат (МСК)")
-        result_layout = QVBoxLayout(result_group)
+        card_result = QFrame()
+        card_result.setObjectName("card")
+        result_layout = QVBoxLayout(card_result)
+        result_layout.setContentsMargins(15, 15, 15, 15)
+        
+        result_header = QHBoxLayout()
+        result_title = QLabel("Результат (МСК)")
+        result_title.setStyleSheet("font-weight: bold; color: #FFFFFF;")
+        result_header.addWidget(result_title)
+        result_header.addStretch()
+        btn_save_file = QPushButton("Сохранить в файл")
+        btn_save_file.clicked.connect(self.save_results_to_file)
+        result_header.addWidget(btn_save_file)
+        result_layout.addLayout(result_header)
         
         self.result_table = QTableWidget()
         self.result_table.setColumnCount(4)
         self.result_table.setHorizontalHeaderLabels(["ID", "X (Север)", "Y (Восток)", "H (Высота)"])
         self.result_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.result_table.setStyleSheet("background-color: #2D2D2D; border: 1px solid #404040; color: #E0E0E0; gridline-color: #404040;")
+        self.result_table.verticalHeader().setVisible(False)
         result_layout.addWidget(self.result_table)
         
-        btn_save_file = QPushButton("Сохранить в файл")
-        btn_save_file.clicked.connect(self.save_results_to_file)
-        result_layout.addWidget(btn_save_file, alignment=Qt.AlignRight)
-        
-        layout.addWidget(result_group)
+        layout.addWidget(card_result)
         
     def load_from_prj(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Открыть файл PRJ", "", "Projection Files (*.prj);;All Files (*)")

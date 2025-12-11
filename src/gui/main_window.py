@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout, QPushButton, QMessageBox
+from PySide6.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QStackedWidget, QStyle
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QFile, QTextStream
 import sys
@@ -7,6 +7,7 @@ from src.gui.widgets.projection_widget import ProjectionWidget
 from src.gui.widgets.coords_widget import CoordsWidget
 from src.gui.widgets.results_widget import ResultsWidget
 from src.gui.widgets.wkt_converter_widget import WktConverterWidget
+from src.gui.widgets.settings_widget import SettingsWidget
 from src.core.converter import CoordinateConverter
 from src.core.estimator import ParameterEstimator
 from src.core.logger import logger
@@ -42,35 +43,120 @@ class MainWindow(QMainWindow):
         
         self.setup_ui()
 
+        self.setup_ui()
+
     def load_styles(self):
-        style_path = self.resource_path("src/gui/styles/dark_theme.qss")
+        # Load theme from config
+        theme_name = config.get("app.theme", "Dark (Default)")
+        self.apply_theme(theme_name)
+
+    def setup_ui(self):
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        main_layout = QHBoxLayout(central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # === Sidebar ===
+        self.sidebar = QWidget()
+        self.sidebar.setObjectName("sidebar")
+        self.sidebar.setFixedWidth(200) # Narrower sidebar
+        sidebar_layout = QVBoxLayout(self.sidebar)
+        sidebar_layout.setContentsMargins(10, 20, 10, 20)
+        sidebar_layout.setSpacing(10)
+
+        # App Title in Sidebar
+        title_label = QPushButton(f"{config.get('app.name')}")
+        title_label.setObjectName("appTitle")
+        title_label.setFlat(True)
+        title_label.setEnabled(False) # Just for display
+        sidebar_layout.addWidget(title_label)
+
+        # Navigation Buttons
+        self.btn_nav_calc = QPushButton("Расчет")
+        self.btn_nav_calc.setIcon(QIcon(self.resource_path("assets/calc.svg")))
+        self.btn_nav_calc.setCheckable(True)
+        self.btn_nav_calc.setChecked(True)
+        self.btn_nav_calc.clicked.connect(lambda: self.switch_tab(0))
+        sidebar_layout.addWidget(self.btn_nav_calc)
+
+        self.btn_nav_wkt = QPushButton("WKT")
+        self.btn_nav_wkt.setIcon(QIcon(self.resource_path("assets/wkt.svg")))
+        self.btn_nav_wkt.setCheckable(True)
+        self.btn_nav_wkt.clicked.connect(lambda: self.switch_tab(1))
+        sidebar_layout.addWidget(self.btn_nav_wkt)
+
+        sidebar_layout.addStretch()
+        
+        # Settings Button
+        self.btn_nav_settings = QPushButton("Настройки")
+        self.btn_nav_settings.setIcon(QIcon(self.resource_path("assets/settings.svg")))
+        self.btn_nav_settings.setCheckable(True)
+        self.btn_nav_settings.clicked.connect(lambda: self.switch_tab(2))
+        sidebar_layout.addWidget(self.btn_nav_settings)
+        
+        # Version info
+        version_label = QPushButton(f"v{config.get('app.version')}")
+        version_label.setObjectName("versionLabel")
+        version_label.setFlat(True)
+        version_label.setEnabled(False)
+        sidebar_layout.addWidget(version_label)
+
+        main_layout.addWidget(self.sidebar)
+
+        # === Content Area ===
+        self.content_area = QStackedWidget()
+        main_layout.addWidget(self.content_area)
+
+        # Page 1: Calculation
+        self.page_calc = QWidget()
+        self.setup_calc_page()
+        self.content_area.addWidget(self.page_calc)
+
+        # Page 2: WKT
+        self.page_wkt = WktConverterWidget()
+        self.content_area.addWidget(self.page_wkt)
+        
+        # Page 3: Settings
+        self.page_settings = SettingsWidget()
+        self.page_settings.theme_changed.connect(self.apply_theme)
+        self.content_area.addWidget(self.page_settings)
+        
+        # Group buttons for exclusive checking
+        self.nav_group = [self.btn_nav_calc, self.btn_nav_wkt, self.btn_nav_settings]
+
+    def switch_tab(self, index):
+        self.content_area.setCurrentIndex(index)
+        # Update button states
+        for i, btn in enumerate(self.nav_group):
+            btn.setChecked(i == index)
+            
+    def apply_theme(self, theme_name):
+        theme_map = {
+            "Dark (Default)": "dark_theme.qss",
+            "Oceanic Blue": "oceanic.qss",
+            "Emerald Tech": "emerald.qss",
+            "Sunset Pro": "sunset.qss"
+        }
+        
+        filename = theme_map.get(theme_name, "dark_theme.qss")
+        style_path = self.resource_path(f"src/gui/styles/{filename}")
+        
         style_file = QFile(style_path)
         if style_file.open(QFile.ReadOnly | QFile.Text):
             stream = QTextStream(style_file)
             self.setStyleSheet(stream.readAll())
             style_file.close()
+            logger.info(f"Применена тема: {theme_name}")
+            # Save to config
+            # config.set("app.theme", theme_name)
         else:
             logger.warning(f"Не удалось загрузить стили QSS: {style_path}")
 
-    def setup_ui(self):
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
-        
-        self.tabs = QTabWidget()
-        layout.addWidget(self.tabs)
-        
-        # Вкладка 1: Расчет
-        self.tab_calc = QWidget()
-        self.setup_calc_tab()
-        self.tabs.addTab(self.tab_calc, "Расчет параметров")
-        
-        # Вкладка 2: WKT
-        self.tab_wkt = WktConverterWidget()
-        self.tabs.addTab(self.tab_wkt, "Конвертер по WKT")
-
-    def setup_calc_tab(self):
-        layout = QVBoxLayout(self.tab_calc)
+    def setup_calc_page(self):
+        layout = QVBoxLayout(self.page_calc)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(20)
         
         self.proj_widget = ProjectionWidget()
         layout.addWidget(self.proj_widget)
@@ -80,6 +166,7 @@ class MainWindow(QMainWindow):
         
         self.btn_calc = QPushButton("РАССЧИТАТЬ ПАРАМЕТРЫ")
         self.btn_calc.setFixedHeight(50)
+        self.btn_calc.setObjectName("actionButton")
         self.btn_calc.clicked.connect(self.calculate)
         layout.addWidget(self.btn_calc)
         
