@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QStackedWidget, QStyle
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QStackedWidget
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import QFile, QTextStream
 import sys
@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"{config.get('app.name')} v{config.get('app.version')}")
-        self.resize(1200, 900)
+        self.resize(1400, 900)
         
         # Установка иконки
         icon_path = self.resource_path("assets/icon.png")
@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
 
     def load_styles(self):
         # Load theme from config
-        theme_name = config.get("app.theme", "Dark (Default)")
+        theme_name = config.get("app.theme", "Dark")
         self.apply_theme(theme_name)
 
     def setup_ui(self):
@@ -133,7 +133,7 @@ class MainWindow(QMainWindow):
             
     def apply_theme(self, theme_name):
         theme_map = {
-            "Dark (Default)": "dark_theme.qss",
+            "Dark": "dark_theme.qss",
             "Oceanic Blue": "oceanic.qss",
             "Emerald Tech": "emerald.qss",
             "Sunset Pro": "sunset.qss"
@@ -154,95 +154,52 @@ class MainWindow(QMainWindow):
             logger.warning(f"Не удалось загрузить стили QSS: {style_path}")
 
     def setup_calc_page(self):
-        layout = QVBoxLayout(self.page_calc)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(20)
+        # Main Horizontal Layout
+        main_layout = QHBoxLayout(self.page_calc)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
+        
+        # === Left Column (Inputs & Controls) ===
+        left_column = QWidget()
+        left_layout = QVBoxLayout(left_column)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(15)
         
         self.proj_widget = ProjectionWidget()
-        layout.addWidget(self.proj_widget)
+        left_layout.addWidget(self.proj_widget)
         
         self.coords_widget = CoordsWidget()
-        layout.addWidget(self.coords_widget)
+        left_layout.addWidget(self.coords_widget)
         
-        self.btn_calc = QPushButton("РАССЧИТАТЬ ПАРАМЕТРЫ")
+        self.btn_calc = QPushButton("Сформировать WKT")
         self.btn_calc.setFixedHeight(50)
         self.btn_calc.setObjectName("actionButton")
         self.btn_calc.clicked.connect(self.calculate)
-        layout.addWidget(self.btn_calc)
+        left_layout.addWidget(self.btn_calc)
+        
+        main_layout.addWidget(left_column, stretch=1)
+        
+        # === Right Column (Results) ===
+        right_column = QWidget()
+        right_layout = QVBoxLayout(right_column)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(15)
         
         self.results_widget = ResultsWidget()
         self.results_widget.geoid_toggled.connect(self.on_geoid_toggled)
         self.results_widget.save_clicked.connect(self.on_save_wkt)
-        layout.addWidget(self.results_widget)
+        right_layout.addWidget(self.results_widget)
+        
+        main_layout.addWidget(right_column, stretch=1)
 
-        # Подключение сигнала автоопределения
-        self.proj_widget.auto_detect_clicked.connect(self.auto_detect_projection)
+        # Подключение сигнала автоопределения (оставим как вспомогательную функцию)
+        # self.proj_widget.auto_detect_clicked.connect(self.auto_detect_projection) # Button removed
 
-    def auto_detect_projection(self):
-        try:
-            # 1. Получение координат
-            data = self.coords_widget.get_data()
-            wgs_raw = self.parse_text_data(data["wgs"])
-            msk_raw = self.parse_text_data(data["msk"])
-            
-            if len(wgs_raw) != len(msk_raw):
-                raise ValueError("Количество точек WGS и МСК не совпадает.")
-            
-            if len(wgs_raw) < 3:
-                raise ValueError("Нужно минимум 3 точки для определения параметров.")
-                
-            wgs_coords = []
-            msk_coords = []
-            
-            for i in range(len(wgs_raw)):
-                # WGS: [ID, Lat, Lon, H]
-                w_lat = float(wgs_raw[i][1])
-                w_lon = float(wgs_raw[i][2])
-                w_h = float(wgs_raw[i][3])
-                wgs_coords.append([w_lat, w_lon, w_h])
-                
-                # MSK: [ID, X, Y, H]
-                m_x = float(msk_raw[i][1])
-                m_y = float(msk_raw[i][2])
-                m_h = float(msk_raw[i][3])
-                msk_coords.append([m_x, m_y, m_h])
-                
-            # 2. Оценка параметров
-            # Используем fixed_scale=True, так как для МСК масштаб обычно 1.0
-            params = self.estimator.estimate_projection_parameters(wgs_coords, msk_coords, fixed_scale=True)
-            
-            # 3. Обновление UI
-            cm_dms = self.converter.format_dms(params["central_meridian"])
-            
-            ui_params = {
-                "cm": cm_dms,
-                "scale": params["scale_factor"],
-                "fe": params["false_easting"],
-                "fn": params["false_northing"],
-                "lat0": 0 # Обычно 0
-            }
-            
-            self.proj_widget.set_params(ui_params)
-            
-            QMessageBox.information(self, "Успех", 
-                                    f"Параметры успешно определены:\n"
-                                    f"CM: {cm_dms}\n"
-                                    f"FE: {params['false_easting']:.3f}\n"
-                                    f"FN: {params['false_northing']:.3f}")
-            
-            logger.info(f"Автоопределение параметров успешно: {params}")
-            
-        except Exception as e:
-            logger.exception("Ошибка автоопределения параметров")
-            QMessageBox.warning(self, "Ошибка", f"Не удалось определить параметры:\n{e}")
+    # auto_detect_projection method removed as it is no longer triggered by any button
 
     def calculate(self):
         try:
-            # 1. Получение параметров проекции
-            proj_params = self.proj_widget.get_params()
-            cm_deg = self.converter.parse_dms(proj_params["cm"])
-            
-            # 2. Получение координат
+            # 1. Получение и парсинг координат
             data = self.coords_widget.get_data()
             wgs_raw = self.parse_text_data(data["wgs"])
             msk_raw = self.parse_text_data(data["msk"])
@@ -252,12 +209,10 @@ class MainWindow(QMainWindow):
             
             if len(wgs_raw) < 3:
                 raise ValueError("Нужно минимум 3 точки.")
-                
-            # 3. Конвертация и Оценка
-            wgs_coords = []
-            msk_coords = []
+
+            wgs_coords_list = []
+            msk_coords_list = []
             ids = []
-            msk_original = []
             
             for i in range(len(wgs_raw)):
                 # WGS
@@ -273,13 +228,43 @@ class MainWindow(QMainWindow):
                 m_h = float(msk_raw[i][3])
                 
                 ids.append(w_id)
-                msk_original.append([m_x, m_y, m_h])
+                wgs_coords_list.append([w_lat, w_lon, w_h])
+                msk_coords_list.append([m_x, m_y, m_h])
+
+            # --- ЭТАП 1: ПРОЕКЦИЯ ---
+            if not self.proj_widget.is_custom_projection():
+                # Автоматический расчет параметров проекции
+                proj_est = self.estimator.estimate_projection_parameters(wgs_coords_list, msk_coords_list, fixed_scale=True)
+                cm_dms = self.converter.format_dms(proj_est["central_meridian"])
                 
-                # WGS -> Декартовы
+                ui_proj_params = {
+                    "cm": cm_dms,
+                    "scale": proj_est["scale_factor"],
+                    "fe": proj_est["false_easting"],
+                    "fn": proj_est["false_northing"],
+                    "lat0": 0
+                }
+                self.proj_widget.set_projection_params(ui_proj_params)
+            
+            # Получаем текущие параметры проекции из UI (автоматические или пользовательские)
+            proj_params = self.proj_widget.get_projection_params()
+            cm_deg = self.converter.parse_dms(proj_params["cm"])
+            
+            # --- ЭТАП 2: ТРАНСФОРМАЦИЯ (ГЕЛЬМЕРТ) ---
+            
+            # Подготовка координат для Гельмерта (WGS Cartesian -> MSK Cartesian)
+            wgs_cartesian = []
+            msk_cartesian = []
+            
+            for i in range(len(wgs_coords_list)):
+                w_lat, w_lon, w_h = wgs_coords_list[i]
+                m_x, m_y, m_h = msk_coords_list[i]
+                
+                # WGS -> Cartesian
                 wx, wy, wz = self.converter.wgs84_to_cartesian(w_lat, w_lon, w_h)
-                wgs_coords.append([wx, wy, wz])
+                wgs_cartesian.append([wx, wy, wz])
                 
-                # МСК -> Декартовы
+                # MSK -> Cartesian (обратная задача проекции с текущими параметрами)
                 mx, my, mz = self.converter.msk_to_cartesian(
                     northing=m_x, easting=m_y, h=m_h, 
                     central_meridian_deg=cm_deg, 
@@ -288,19 +273,26 @@ class MainWindow(QMainWindow):
                     scale_factor=proj_params["scale"], 
                     lat_origin=proj_params["lat0"]
                 )
-                msk_coords.append([mx, my, mz])
+                msk_cartesian.append([mx, my, mz])
                 
-            wgs_coords = np.array(wgs_coords)
-            msk_coords = np.array(msk_coords)
+            wgs_cartesian = np.array(wgs_cartesian)
+            msk_cartesian = np.array(msk_cartesian)
             
-            # Оценка
-            params = self.estimator.calculate_helmert(wgs_coords, msk_coords)
+            if not self.proj_widget.is_custom_transformation():
+                # Автоматический расчет параметров Гельмерта
+                helmert_params = self.estimator.calculate_helmert(wgs_cartesian, msk_cartesian)
+                self.proj_widget.set_transformation_params(helmert_params)
             
-            # Проверка
-            transformed_cart = self.estimator.apply_helmert(wgs_coords, params)
+            # Получаем текущие параметры трансформации из UI
+            trans_params = self.proj_widget.get_transformation_params()
             
-            # Сравнение
-            msk_calculated = []
+            # --- ЭТАП 3: ПРОВЕРКА И ВЫВОД ---
+            
+            # Применяем трансформацию: WGS Cart -> [Helmert] -> Transformed Cart
+            transformed_cart = self.estimator.apply_helmert(wgs_cartesian, trans_params)
+            
+            # Transformed Cart -> MSK (прямая задача проекции)
+            comparison_data = []
             for i in range(len(transformed_cart)):
                 tx, ty, tz = transformed_cart[i]
                 n, e, h = self.converter.cartesian_to_msk(
@@ -308,45 +300,26 @@ class MainWindow(QMainWindow):
                     proj_params["fe"], proj_params["fn"], 
                     proj_params["scale"], proj_params["lat0"]
                 )
-                msk_calculated.append([n, e, h])
                 
-            # --- Формирование вывода ---
-            
-            # 1. Параметры
-            res_params = f"=== Параметры проекции ===\n"
-            res_params += f"CM (deg): {cm_deg:.9f}\n\n"
-            
-            res_params += "=== Рассчитанные параметры (WGS84 -> МСК) ===\n"
-            res_params += f"Tx: {params['Tx']:.4f} м\n"
-            res_params += f"Ty: {params['Ty']:.4f} м\n"
-            res_params += f"Tz: {params['Tz']:.4f} м\n"
-            res_params += f"Rx: {params['Rx']:.5f} сек\n"
-            res_params += f"Ry: {params['Ry']:.5f} сек\n"
-            res_params += f"Rz: {params['Rz']:.5f} сек\n"
-            res_params += f"Scale: {params['Scale_ppm']:.5f} ppm\n"
-            
-            self.results_widget.set_params_text(res_params)
-            
-            # 2. Сравнение
-            res_comp = f"{'ID':<5} | {'dX':<8} | {'dY':<8} | {'dH':<8}\n"
-            res_comp += "-"*40 + "\n"
-            
-            for i in range(len(ids)):
-                orig = msk_original[i]
-                calc = msk_calculated[i]
+                # Сравнение с исходными MSK
+                orig_n, orig_e, orig_h = msk_coords_list[i]
                 
-                dx = orig[0] - calc[0]
-                dy = orig[1] - calc[1]
-                dh = orig[2] - calc[2]
+                dx = orig_n - n
+                dy = orig_e - e
+                dh = orig_h - h
                 
-                res_comp += f"{ids[i]:<5} | {dx:<8.4f} | {dy:<8.4f} | {dh:<8.4f}\n"
+                comparison_data.append((ids[i], dx, dy, dh))
                 
-            self.results_widget.set_comparison_text(res_comp)
+            # Обновление таблицы сравнения
+            self.results_widget.set_comparison_data(comparison_data)
             
-            # 3. WKT
-            # Сохраняем данные для перегенерации WKT
+            # Генерация WKT
+            # Объединяем параметры
+            full_params = trans_params.copy() # Tx, Ty, Tz, Rx, Ry, Rz, Scale_ppm
+            
+            # Сохраняем для обновления при переключении геоида
             self.last_calc_result = {
-                "params": params,
+                "params": full_params,
                 "cm_deg": cm_deg,
                 "fe": proj_params["fe"],
                 "fn": proj_params["fn"],
@@ -356,7 +329,7 @@ class MainWindow(QMainWindow):
             
             self.update_wkt_display()
             
-            logger.info("Расчет выполнен успешно")
+            logger.info("Расчет и формирование WKT выполнены успешно")
             
         except Exception as e:
             logger.exception("Ошибка расчета")

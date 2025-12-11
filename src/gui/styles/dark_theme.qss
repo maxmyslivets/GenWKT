@@ -190,3 +190,29 @@ QGroupBox::title {
     color: #BB86FC;
     background-color: #1E1E1E; /* Match card bg */
 }
+
+/* Table Widget */
+QTableWidget {
+    background-color: #2D2D2D;
+    border: 1px solid #404040;
+    color: #E0E0E0;
+    gridline-color: #404040;
+    border-radius: 6px;
+}
+
+QTableWidget::item {
+    padding: 5px;
+}
+
+QHeaderView::section {
+    background-color: #1E1E1E;
+    color: #B0B0B0;
+    padding: 5px;
+    border: 1px solid #404040;
+    font-weight: bold;
+}
+
+QTableCornerButton::section {
+    background-color: #1E1E1E;
+    border: 1px solid #404040;
+}

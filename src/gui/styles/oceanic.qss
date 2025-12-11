@@ -187,3 +187,29 @@ QComboBox::drop-down {
     border-top-right-radius: 3px;
     border-bottom-right-radius: 3px;
 }
+
+/* Table Widget */
+QTableWidget {
+    background-color: #1E1E1E;
+    border: 1px solid #3C3C3C;
+    color: #D4D4D4;
+    gridline-color: #3C3C3C;
+    border-radius: 2px;
+}
+
+QTableWidget::item {
+    padding: 5px;
+}
+
+QHeaderView::section {
+    background-color: #252526;
+    color: #CCCCCC;
+    padding: 5px;
+    border: 1px solid #3C3C3C;
+    font-weight: bold;
+}
+
+QTableCornerButton::section {
+    background-color: #252526;
+    border: 1px solid #3C3C3C;
+}

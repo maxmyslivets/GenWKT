@@ -1,5 +1,6 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QFrame, QCheckBox, QPushButton
-from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, 
+                               QFrame, QCheckBox, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView)
+from PySide6.QtCore import Signal, Qt
 
 class ResultsWidget(QWidget):
     geoid_toggled = Signal(bool)
@@ -14,44 +15,24 @@ class ResultsWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(20)
         
-        # Верхняя часть: Параметры и Сравнение
-        top_layout = QHBoxLayout()
-        top_layout.setSpacing(20)
-        
-        # Группа 1: Рассчитанные параметры
-        card_params = QFrame()
-        card_params.setObjectName("card")
-        params_layout = QVBoxLayout(card_params)
-        params_layout.setContentsMargins(15, 15, 15, 15)
-        
-        title_params = QLabel("Рассчитанные параметры")
-        title_params.setStyleSheet("font-weight: bold; color: #FFFFFF; font-size: 14px;")
-        params_layout.addWidget(title_params)
-        
-        self.text_params = QTextEdit()
-        self.text_params.setReadOnly(True)
-        self.text_params.setFontFamily("Consolas")
-        params_layout.addWidget(self.text_params)
-        top_layout.addWidget(card_params)
-        
-        # Группа 2: Сравнение координат
+        # Верхняя часть: Сравнение координат (теперь занимает больше места, т.к. параметры ушли в инпуты)
         card_comp = QFrame()
         card_comp.setObjectName("card")
         comp_layout = QVBoxLayout(card_comp)
         comp_layout.setContentsMargins(15, 15, 15, 15)
         
-        title_comp = QLabel("Сравнение координат")
+        title_comp = QLabel("Сравнение координат (Исходные vs Рассчитанные)")
         title_comp.setStyleSheet("font-weight: bold; color: #FFFFFF; font-size: 14px;")
         comp_layout.addWidget(title_comp)
         
-        self.text_comp = QTextEdit()
-        self.text_comp.setReadOnly(True)
-        self.text_comp.setFontFamily("Consolas")
-        self.text_comp.setLineWrapMode(QTextEdit.NoWrap)
-        comp_layout.addWidget(self.text_comp)
-        top_layout.addWidget(card_comp)
+        self.table_comp = QTableWidget()
+        self.table_comp.setColumnCount(4)
+        self.table_comp.setHorizontalHeaderLabels(["ID", "dX (м)", "dY (м)", "dH (м)"])
+        self.table_comp.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table_comp.verticalHeader().setVisible(False)
+        comp_layout.addWidget(self.table_comp)
         
-        layout.addLayout(top_layout)
+        layout.addWidget(card_comp)
         
         # Нижняя часть: WKT
         card_wkt = QFrame()
@@ -84,11 +65,17 @@ class ResultsWidget(QWidget):
         
         layout.addWidget(card_wkt)
 
-    def set_params_text(self, text):
-        self.text_params.setText(text)
-
-    def set_comparison_text(self, text):
-        self.text_comp.setText(text)
+    def set_comparison_data(self, data):
+        """
+        Заполнение таблицы сравнения.
+        data: список кортежей (id, dx, dy, dh)
+        """
+        self.table_comp.setRowCount(len(data))
+        for i, (pt_id, dx, dy, dh) in enumerate(data):
+            self.table_comp.setItem(i, 0, QTableWidgetItem(str(pt_id)))
+            self.table_comp.setItem(i, 1, QTableWidgetItem(f"{dx:.4f}"))
+            self.table_comp.setItem(i, 2, QTableWidgetItem(f"{dy:.4f}"))
+            self.table_comp.setItem(i, 3, QTableWidgetItem(f"{dh:.4f}"))
 
     def set_wkt_text(self, text):
         self.text_wkt.setText(text)

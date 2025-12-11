@@ -13,9 +13,16 @@ class WktConverterWidget(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(20)
+        # Main Horizontal Layout
+        main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
+        
+        # === Left Column (WKT Input) ===
+        left_column = QWidget()
+        left_layout = QVBoxLayout(left_column)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(15)
         
         # 1. Секция ввода WKT
         card_wkt = QFrame()
@@ -37,7 +44,14 @@ class WktConverterWidget(QWidget):
         self.wkt_edit.setPlaceholderText('Пример: PROJCS["Transverse_Mercator",GEOGCS["GCS_Pulkovo_1942",DATUM["D_Pulkovo_1942",SPHEROID["Krassowsky_1942",6378245.0,298.3]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",39.0],PARAMETER["Scale_Factor",1.0],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]')
         wkt_layout.addWidget(self.wkt_edit)
         
-        layout.addWidget(card_wkt)
+        left_layout.addWidget(card_wkt)
+        main_layout.addWidget(left_column, stretch=1)
+        
+        # === Right Column (Coords, Button, Results) ===
+        right_column = QWidget()
+        right_layout = QVBoxLayout(right_column)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(15)
         
         # 2. Секция ввода координат (WGS84)
         card_input = QFrame()
@@ -66,14 +80,14 @@ class WktConverterWidget(QWidget):
         self.lbl_height_warning.setVisible(False)
         input_layout.addWidget(self.lbl_height_warning)
         
-        layout.addWidget(card_input)
+        right_layout.addWidget(card_input)
         
         # 3. Кнопка действия
         self.btn_convert = QPushButton("КОНВЕРТИРОВАТЬ")
         self.btn_convert.setFixedHeight(40)
         self.btn_convert.setObjectName("actionButton")
         self.btn_convert.clicked.connect(self.convert)
-        layout.addWidget(self.btn_convert)
+        right_layout.addWidget(self.btn_convert)
         
         # 4. Секция результатов (МСК)
         card_result = QFrame()
@@ -95,11 +109,13 @@ class WktConverterWidget(QWidget):
         self.result_table.setColumnCount(4)
         self.result_table.setHorizontalHeaderLabels(["ID", "X (Север)", "Y (Восток)", "H (Высота)"])
         self.result_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.result_table.setStyleSheet("background-color: #2D2D2D; border: 1px solid #404040; color: #E0E0E0; gridline-color: #404040;")
+        # self.result_table.setStyleSheet(...) # Removed inline style to use QSS
         self.result_table.verticalHeader().setVisible(False)
         result_layout.addWidget(self.result_table)
         
-        layout.addWidget(card_result)
+        right_layout.addWidget(card_result)
+        
+        main_layout.addWidget(right_column, stretch=1)
         
     def load_from_prj(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Открыть файл PRJ", "", "Projection Files (*.prj);;All Files (*)")

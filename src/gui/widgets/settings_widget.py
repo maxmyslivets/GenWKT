@@ -34,7 +34,7 @@ class SettingsWidget(QWidget):
         # Theme Selection
         grid.addWidget(QLabel("Цветовая тема:"), 0, 0)
         self.combo_theme = QComboBox()
-        self.combo_theme.addItems(["Dark (Default)", "Oceanic Blue", "Emerald Tech", "Sunset Pro"])
+        self.combo_theme.addItems(["Dark", "Oceanic Blue", "Emerald Tech", "Sunset Pro"])
         self.combo_theme.currentTextChanged.connect(self.on_theme_changed)
         grid.addWidget(self.combo_theme, 0, 1)
 
@@ -45,7 +45,7 @@ class SettingsWidget(QWidget):
         layout.addStretch()
 
     def load_settings(self):
-        current_theme = config.get("app.theme", "Dark (Default)")
+        current_theme = config.get("app.theme", "Dark")
         self.combo_theme.setCurrentText(current_theme)
 
     def on_theme_changed(self, theme_name):

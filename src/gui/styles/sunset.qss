@@ -177,3 +177,29 @@ QComboBox {
     padding: 6px 10px;
     color: #ABB2BF;
 }
+
+/* Table Widget */
+QTableWidget {
+    background-color: #282C34;
+    border: 1px solid #181A1F;
+    color: #ABB2BF;
+    gridline-color: #181A1F;
+    border-radius: 4px;
+}
+
+QTableWidget::item {
+    padding: 5px;
+}
+
+QHeaderView::section {
+    background-color: #21252B;
+    color: #ABB2BF;
+    padding: 5px;
+    border: 1px solid #181A1F;
+    font-weight: bold;
+}
+
+QTableCornerButton::section {
+    background-color: #21252B;
+    border: 1px solid #181A1F;
+}
