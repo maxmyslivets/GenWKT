@@ -10,10 +10,12 @@ dependencies = [
     "loguru>=0.7.3",
     "numpy>=2.3.5",
     "packaging>=25.0",
+    "pillow>=12.0.0",
     "pyinstaller>=6.17.0",
     "pyproj>=3.7.2",
     "pyside6>=6.10.1",
     "pytest>=9.0.2",
     "pytest-qt>=4.5.0",
     "scipy>=1.15.0",
+    "Pillow>=10.0.0",
 ]
