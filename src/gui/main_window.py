@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QStackedWidget
 from PySide6.QtGui import QIcon
-from PySide6.QtCore import QFile, QTextStream
+from PySide6.QtCore import QFile, QTextStream, Qt
 import sys
 import os
 from src.gui.widgets.projection_widget import ProjectionWidget
@@ -12,6 +12,8 @@ from src.core.converter import CoordinateConverter
 from src.core.estimator import ParameterEstimator
 from src.core.logger import logger
 from src.config.loader import config
+from src.gui.widgets.map_widget import MapWidget
+from PySide6.QtWidgets import QCheckBox
 import numpy as np
 
 class MainWindow(QMainWindow):
@@ -28,7 +30,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"{config.get('app.name')} v{config.get('app.version')}")
-        self.resize(1400, 900)
+        self.setWindowState(Qt.WindowMaximized)
         
         # Установка иконки
         icon_path = self.resource_path("assets/icon.png")
@@ -169,6 +171,7 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(self.proj_widget)
         
         self.coords_widget = CoordsWidget()
+        self.coords_widget.wgs_changed.connect(self.update_calc_map_from_input)
         left_layout.addWidget(self.coords_widget)
         
         self.btn_calc = QPushButton("Сформировать WKT")
@@ -179,19 +182,36 @@ class MainWindow(QMainWindow):
         
         main_layout.addWidget(left_column, stretch=1)
         
-        # === Right Column (Results) ===
-        right_column = QWidget()
-        right_layout = QVBoxLayout(right_column)
-        right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.setSpacing(15)
+        # === Center Column (Results) ===
+        center_column = QWidget()
+        center_layout = QVBoxLayout(center_column)
+        center_layout.setContentsMargins(0, 0, 0, 0)
+        center_layout.setSpacing(15)
         
         self.results_widget = ResultsWidget()
         self.results_widget.geoid_toggled.connect(self.on_geoid_toggled)
         self.results_widget.crs_name_changed.connect(lambda _: self.update_wkt_display())
         self.results_widget.save_clicked.connect(self.on_save_wkt)
-        right_layout.addWidget(self.results_widget)
+        center_layout.addWidget(self.results_widget)
         
-        main_layout.addWidget(right_column, stretch=1)
+        main_layout.addWidget(center_column, stretch=1)
+
+        # === Right Column (Map) ===
+        right_column = QWidget()
+        right_layout = QVBoxLayout(right_column)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(15)
+
+        # Checkbox for polygon
+        self.chk_calc_show_polygon = QCheckBox("Показать зону покрытия")
+        self.chk_calc_show_polygon.setChecked(True)
+        self.chk_calc_show_polygon.stateChanged.connect(self.refresh_calc_map)
+        right_layout.addWidget(self.chk_calc_show_polygon)
+
+        self.calc_map_widget = MapWidget()
+        right_layout.addWidget(self.calc_map_widget)
+
+        main_layout.addWidget(right_column, stretch=2)
 
         # Подключение сигнала автоопределения (оставим как вспомогательную функцию)
         # self.proj_widget.auto_detect_clicked.connect(self.auto_detect_projection) # Button removed
@@ -333,9 +353,74 @@ class MainWindow(QMainWindow):
             
             logger.info("Расчет и формирование WKT выполнены успешно")
             
+            # Update map
+            self.last_wgs_coords = wgs_coords_list # Store for checkbox toggle
+            self.refresh_calc_map()
+            
+            
         except Exception as e:
             logger.exception("Ошибка расчета")
             QMessageBox.critical(self, "Ошибка", str(e))
+
+    def refresh_calc_map(self):
+        self.update_calc_map_from_input()
+
+    def update_calc_map_from_input(self):
+        """
+        Parses input from CoordsWidget and updates the map.
+        Similar to WktConverterWidget.refresh_map but for the calculation page.
+        """
+        try:
+            data = self.coords_widget.get_data()
+            wgs_text = data["wgs"]
+            
+            points = []
+            if wgs_text:
+                lines = wgs_text.strip().split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if not line: continue
+                    
+                    # Try to parse line
+                    parts = line.replace(',', ' ').split()
+                    parts = [p.strip() for p in parts if p.strip()]
+                    
+                    if len(parts) >= 2:
+                        try:
+                            # Heuristic parsing
+                            lat, lon = 0.0, 0.0
+                            label = ""
+                            
+                            # Case 1: ID, Lat, Lon, H (4+)
+                            if len(parts) >= 4:
+                                label = parts[0]
+                                lat = float(parts[1])
+                                lon = float(parts[2])
+                            # Case 2: Lat, Lon, H (3) - could be ID, Lat, Lon
+                            elif len(parts) == 3:
+                                # Try as Lat, Lon, H
+                                try:
+                                    lat = float(parts[0])
+                                    lon = float(parts[1])
+                                except ValueError:
+                                    # Maybe ID, Lat, Lon
+                                    label = parts[0]
+                                    lat = float(parts[1])
+                                    lon = float(parts[2])
+                            # Case 3: Lat, Lon (2)
+                            elif len(parts) == 2:
+                                lat = float(parts[0])
+                                lon = float(parts[1])
+                                
+                            points.append((lat, lon, label))
+                        except ValueError:
+                            pass
+            
+            self.calc_map_widget.update_map(points, show_polygon=self.chk_calc_show_polygon.isChecked())
+            
+        except Exception as e:
+            # Silent error for real-time updates to avoid spamming
+            pass
 
     def update_wkt_display(self):
         if not hasattr(self, 'last_calc_result'):

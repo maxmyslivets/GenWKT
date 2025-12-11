@@ -1,7 +1,9 @@
 from PySide6.QtWidgets import QWidget, QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QPushButton, QFrame, QFileDialog
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 
 class CoordsWidget(QWidget):
+    wgs_changed = Signal()
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setup_ui()
@@ -30,6 +32,7 @@ class CoordsWidget(QWidget):
         
         self.text_wgs = QTextEdit()
         self.text_wgs.setPlaceholderText("1,55.9132151,28.7827337,148.13\n...")
+        self.text_wgs.textChanged.connect(self.wgs_changed.emit)
         wgs_layout.addWidget(self.text_wgs)
         
         layout.addWidget(wgs_card, 0, 0)
