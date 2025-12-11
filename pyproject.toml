@@ -14,4 +14,5 @@ dependencies = [
     "pyside6>=6.10.1",
     "pytest>=9.0.2",
     "pytest-qt>=4.5.0",
+    "scipy>=1.15.0",
 ]

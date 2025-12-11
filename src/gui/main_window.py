@@ -88,6 +88,67 @@ class MainWindow(QMainWindow):
         self.results_widget.save_clicked.connect(self.on_save_wkt)
         layout.addWidget(self.results_widget)
 
+        # Подключение сигнала автоопределения
+        self.proj_widget.auto_detect_clicked.connect(self.auto_detect_projection)
+
+    def auto_detect_projection(self):
+        try:
+            # 1. Получение координат
+            data = self.coords_widget.get_data()
+            wgs_raw = self.parse_text_data(data["wgs"])
+            msk_raw = self.parse_text_data(data["msk"])
+            
+            if len(wgs_raw) != len(msk_raw):
+                raise ValueError("Количество точек WGS и МСК не совпадает.")
+            
+            if len(wgs_raw) < 3:
+                raise ValueError("Нужно минимум 3 точки для определения параметров.")
+                
+            wgs_coords = []
+            msk_coords = []
+            
+            for i in range(len(wgs_raw)):
+                # WGS: [ID, Lat, Lon, H]
+                w_lat = float(wgs_raw[i][1])
+                w_lon = float(wgs_raw[i][2])
+                w_h = float(wgs_raw[i][3])
+                wgs_coords.append([w_lat, w_lon, w_h])
+                
+                # MSK: [ID, X, Y, H]
+                m_x = float(msk_raw[i][1])
+                m_y = float(msk_raw[i][2])
+                m_h = float(msk_raw[i][3])
+                msk_coords.append([m_x, m_y, m_h])
+                
+            # 2. Оценка параметров
+            # Используем fixed_scale=True, так как для МСК масштаб обычно 1.0
+            params = self.estimator.estimate_projection_parameters(wgs_coords, msk_coords, fixed_scale=True)
+            
+            # 3. Обновление UI
+            cm_dms = self.converter.format_dms(params["central_meridian"])
+            
+            ui_params = {
+                "cm": cm_dms,
+                "scale": params["scale_factor"],
+                "fe": params["false_easting"],
+                "fn": params["false_northing"],
+                "lat0": 0 # Обычно 0
+            }
+            
+            self.proj_widget.set_params(ui_params)
+            
+            QMessageBox.information(self, "Успех", 
+                                    f"Параметры успешно определены:\n"
+                                    f"CM: {cm_dms}\n"
+                                    f"FE: {params['false_easting']:.3f}\n"
+                                    f"FN: {params['false_northing']:.3f}")
+            
+            logger.info(f"Автоопределение параметров успешно: {params}")
+            
+        except Exception as e:
+            logger.exception("Ошибка автоопределения параметров")
+            QMessageBox.warning(self, "Ошибка", f"Не удалось определить параметры:\n{e}")
+
     def calculate(self):
         try:
             # 1. Получение параметров проекции

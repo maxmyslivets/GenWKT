@@ -1,8 +1,10 @@
-from PySide6.QtWidgets import QWidget, QGridLayout, QLabel, QLineEdit, QGroupBox
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QWidget, QGridLayout, QLabel, QLineEdit, QGroupBox, QPushButton
+from PySide6.QtCore import Qt, Signal
 from src.config.loader import config
 
 class ProjectionWidget(QWidget):
+    auto_detect_clicked = Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setup_ui()
@@ -42,6 +44,12 @@ class ProjectionWidget(QWidget):
         self.entry_lat0.setPlaceholderText("0")
         group_layout.addWidget(self.entry_lat0, 2, 1)
         
+        # Row 3 - Кнопка автоопределения
+        self.btn_auto = QPushButton("Авто-определение")
+        self.btn_auto.setToolTip("Автоматически определить параметры проекции по введенным координатам")
+        self.btn_auto.clicked.connect(self.auto_detect_clicked.emit)
+        group_layout.addWidget(self.btn_auto, 2, 3)
+        
         layout.addWidget(group, 0, 0)
 
         # Подключение сигналов для замены запятой на точку
@@ -69,3 +77,19 @@ class ProjectionWidget(QWidget):
             "fn": float(self.entry_fn.text() or 0.0),
             "lat0": float(self.entry_lat0.text() or 0.0)
         }
+
+    def set_params(self, params):
+        """
+        Установка параметров в поля ввода.
+        params: dict с ключами cm, scale, fe, fn, lat0
+        """
+        if "cm" in params:
+            self.entry_cm.setText(str(params["cm"]))
+        if "scale" in params:
+            self.entry_scale.setText(str(params["scale"]))
+        if "fe" in params:
+            self.entry_fe.setText(f"{params['fe']:.4f}")
+        if "fn" in params:
+            self.entry_fn.setText(f"{params['fn']:.4f}")
+        if "lat0" in params:
+            self.entry_lat0.setText(str(params["lat0"]))
