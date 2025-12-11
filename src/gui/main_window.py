@@ -235,7 +235,8 @@ class MainWindow(QMainWindow):
             if not self.proj_widget.is_custom_projection():
                 # Автоматический расчет параметров проекции
                 proj_est = self.estimator.estimate_projection_parameters(wgs_coords_list, msk_coords_list, fixed_scale=True)
-                cm_dms = self.converter.format_dms(proj_est["central_meridian"])
+                # cm_dms = self.converter.format_dms(proj_est["central_meridian"])
+                cm_dms = f"{proj_est['central_meridian']:.9f}"
                 
                 ui_proj_params = {
                     "cm": cm_dms,
