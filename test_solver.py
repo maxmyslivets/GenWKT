@@ -1,5 +1,6 @@
 import numpy as np
-from logic import CoordinateConverter, ParameterEstimator
+from src.core.converter import CoordinateConverter
+from src.core.estimator import ParameterEstimator
 
 def test_calculation():
     converter = CoordinateConverter()

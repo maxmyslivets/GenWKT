@@ -1,0 +1,205 @@
+/* Global Settings */
+* {
+    font-family: "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    color: #ABB2BF;
+}
+
+QMainWindow, QWidget#centralWidget {
+    background-color: #282C34;
+}
+
+/* Sidebar */
+QWidget#sidebar {
+    background-color: #21252B;
+    border-right: 1px solid #181A1F;
+}
+
+QPushButton#appTitle {
+    font-size: 20px;
+    font-weight: bold;
+    color: #E06C75; /* Red/Orange Accent */
+    text-align: left;
+    padding: 15px 10px;
+    border: none;
+    background: transparent;
+}
+
+QPushButton#versionLabel {
+    color: #5C6370;
+    font-size: 12px;
+    text-align: left;
+    padding: 5px 10px;
+}
+
+/* Navigation Buttons */
+QWidget#sidebar QPushButton {
+    text-align: left;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    background-color: transparent;
+    color: #ABB2BF;
+    font-weight: 500;
+    margin: 4px 10px;
+}
+
+QWidget#sidebar QPushButton:hover {
+    background-color: #2C313A;
+    color: #FFFFFF;
+}
+
+QWidget#sidebar QPushButton:checked {
+    background-color: #3E4451;
+    color: #D19A66; /* Orange Accent */
+}
+
+/* Content Area */
+QStackedWidget {
+    background-color: #282C34;
+}
+
+/* Cards (Frames) */
+QFrame {
+    background-color: #21252B;
+    border-radius: 8px;
+    border: 1px solid #181A1F;
+}
+
+/* Square Cards for Main Page */
+QFrame#card_square {
+    border-radius: 8px;
+}
+
+/* Specific Widget Styles */
+QLabel {
+    color: #ABB2BF;
+    border: none;
+    background: transparent;
+}
+
+QLineEdit {
+    background-color: #282C34;
+    border: 1px solid #181A1F;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: #ABB2BF;
+}
+
+QLineEdit:focus {
+    border: 1px solid #61AFEF; /* Blue focus */
+    background-color: #2C313A;
+}
+
+QTextEdit {
+    background-color: #282C34;
+    border: 1px solid #181A1F;
+    border-radius: 4px;
+    padding: 8px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 13px;
+    color: #ABB2BF;
+}
+
+/* Action Buttons */
+QPushButton {
+    background-color: #3E4451;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-weight: 600;
+    color: #ABB2BF;
+}
+
+QPushButton:hover {
+    background-color: #4B5263;
+    color: #FFFFFF;
+}
+
+QPushButton:pressed {
+    background-color: #2C313A;
+}
+
+/* Primary Action Button */
+QPushButton#actionButton {
+    background-color: #D19A66; /* Orange */
+    color: #282C34; /* Dark Text */
+    font-size: 16px;
+    padding: 10px 20px;
+}
+
+QPushButton#actionButton:hover {
+    background-color: #E5C07B;
+}
+
+QPushButton#actionButton:pressed {
+    background-color: #B08256;
+}
+
+/* Scrollbars */
+QScrollBar:vertical {
+    border: none;
+    background: #282C34;
+    width: 10px;
+    margin: 0px;
+}
+
+QScrollBar::handle:vertical {
+    background: #4B5263;
+    min-height: 20px;
+    border-radius: 5px;
+}
+
+QScrollBar:horizontal {
+    border: none;
+    background: #282C34;
+    height: 10px;
+    margin: 0px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #4B5263;
+    min-width: 20px;
+    border-radius: 5px;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal,
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    width: 0px;
+    height: 0px;
+}
+
+/* ComboBox */
+QComboBox {
+    background-color: #282C34;
+    border: 1px solid #181A1F;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: #ABB2BF;
+}
+
+/* Table Widget */
+QTableWidget {
+    background-color: #282C34;
+    border: 1px solid #181A1F;
+    color: #ABB2BF;
+    gridline-color: #181A1F;
+    border-radius: 4px;
+}
+
+QTableWidget::item {
+    padding: 5px;
+}
+
+QHeaderView::section {
+    background-color: #21252B;
+    color: #ABB2BF;
+    padding: 5px;
+    border: 1px solid #181A1F;
+    font-weight: bold;
+}
+
+QTableCornerButton::section {
+    background-color: #21252B;
+    border: 1px solid #181A1F;
+}

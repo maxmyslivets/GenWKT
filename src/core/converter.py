@@ -65,6 +65,41 @@ class CoordinateConverter:
             logger.exception(f"Ошибка парсинга угла '{dms_str}'")
             raise ValueError(f"Ошибка парсинга угла '{dms_str}': {e}")
 
+    def format_dms(self, deg: float) -> str:
+        """
+        Преобразование десятичных градусов в строку DMS 'ГГ ММ СС.ссссс'.
+        """
+        try:
+            sign = 1
+            if deg < 0:
+                sign = -1
+                deg = abs(deg)
+            
+            d = int(deg)
+            m_full = (deg - d) * 60
+            m = int(m_full)
+            s = (m_full - m) * 60
+            
+            # Округление секунд до 5 знаков
+            s = round(s, 5)
+            
+            # Обработка переполнения секунд (60.0 -> 00.0, m+1)
+            if s >= 60:
+                s = 0
+                m += 1
+            
+            if m >= 60:
+                m = 0
+                d += 1
+                
+            if sign == -1:
+                d = -d
+                
+            return f"{d} {m:02d} {s:08.5f}"
+        except Exception as e:
+            logger.exception(f"Ошибка форматирования угла {deg}")
+            return str(deg)
+
     def wgs84_to_cartesian(self, lat: float, lon: float, h: float):
         """
         Преобразование WGS84 (lat, lon, h) в Геоцентрические (X, Y, Z).

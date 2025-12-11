@@ -1,9 +1,10 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                               QPushButton, QTextEdit, QLineEdit, QGroupBox, 
-                               QFileDialog, QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView)
+                               QPushButton, QTextEdit, QLineEdit, QFrame, 
+                               QFileDialog, QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView, QCheckBox)
 from PySide6.QtCore import Qt
 from src.core.converter import CoordinateConverter
 from src.core.logger import logger
+from src.gui.widgets.map_widget import MapWidget
 import csv
 
 class WktConverterWidget(QWidget):
@@ -13,65 +14,144 @@ class WktConverterWidget(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        layout = QVBoxLayout(self)
+        # Main Horizontal Layout
+        main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
+        
+        # === Left Column (WKT Input) ===
+        left_column = QWidget()
+        left_layout = QVBoxLayout(left_column)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(15)
         
         # 1. Секция ввода WKT
-        wkt_group = QGroupBox("Параметры WKT")
-        wkt_layout = QVBoxLayout(wkt_group)
+        card_wkt = QFrame()
+        card_wkt.setObjectName("card")
+        wkt_layout = QVBoxLayout(card_wkt)
+        wkt_layout.setContentsMargins(15, 15, 15, 15)
+        
+        wkt_header = QHBoxLayout()
+        wkt_title = QLabel("Параметры WKT")
+        wkt_title.setStyleSheet("font-weight: bold; color: #FFFFFF;")
+        wkt_header.addWidget(wkt_title)
+        wkt_header.addStretch()
+        btn_load_prj = QPushButton("Загрузить из .prj")
+        btn_load_prj.clicked.connect(self.load_from_prj)
+        wkt_header.addWidget(btn_load_prj)
+        wkt_layout.addLayout(wkt_header)
         
         self.wkt_edit = QTextEdit()
         self.wkt_edit.setPlaceholderText('Пример: PROJCS["Transverse_Mercator",GEOGCS["GCS_Pulkovo_1942",DATUM["D_Pulkovo_1942",SPHEROID["Krassowsky_1942",6378245.0,298.3]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",39.0],PARAMETER["Scale_Factor",1.0],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]')
-        self.wkt_edit.setMaximumHeight(150)
         wkt_layout.addWidget(self.wkt_edit)
         
-        btn_load_prj = QPushButton("Загрузить из .prj")
-        btn_load_prj.clicked.connect(self.load_from_prj)
-        wkt_layout.addWidget(btn_load_prj, alignment=Qt.AlignRight)
+        left_layout.addWidget(card_wkt)
+        main_layout.addWidget(left_column, stretch=1)
         
-        layout.addWidget(wkt_group)
+        # === Center Column (Coords, Button, Results) ===
+        center_column = QWidget()
+        center_layout = QVBoxLayout(center_column)
+        center_layout.setContentsMargins(0, 0, 0, 0)
+        center_layout.setSpacing(15)
         
         # 2. Секция ввода координат (WGS84)
-        input_group = QGroupBox("Координаты WGS84 (ID, Lat, Lon, H)")
-        input_layout = QVBoxLayout(input_group)
+        card_input = QFrame()
+        card_input.setObjectName("card")
+        input_layout = QVBoxLayout(card_input)
+        input_layout.setContentsMargins(15, 15, 15, 15)
+        
+        input_header = QHBoxLayout()
+        input_title = QLabel("Координаты WGS84 (ID, Lat, Lon, H)")
+        input_title.setStyleSheet("font-weight: bold; color: #FFFFFF;")
+        input_header.addWidget(input_title)
+        input_header.addStretch()
+        btn_load_file = QPushButton("Загрузить из файла")
+        btn_load_file.clicked.connect(self.load_coords_from_file)
+        input_header.addWidget(btn_load_file)
+        input_layout.addLayout(input_header)
         
         self.coords_input = QTextEdit()
         self.coords_input.setPlaceholderText("Введите координаты построчно (разделитель запятая или пробел):\n1,54.9183617,28.7378755,145\n2,54.8922442,28.7457653,147\n3,54.8688434,28.7250955,171")
+        self.coords_input.textChanged.connect(lambda: self.refresh_map())
         input_layout.addWidget(self.coords_input)
-        
-        btn_load_file = QPushButton("Загрузить из файла")
-        btn_load_file.clicked.connect(self.load_coords_from_file)
-        input_layout.addWidget(btn_load_file, alignment=Qt.AlignRight)
         
         # Лейбл предупреждения о высоте
         self.lbl_height_warning = QLabel("Высоты не пересчитывались, т.к. в WKT не описана вертикальная система координат")
-        self.lbl_height_warning.setStyleSheet("color: red; font-weight: bold;")
+        self.lbl_height_warning.setStyleSheet("color: #FF5555; font-weight: bold;")
         self.lbl_height_warning.setWordWrap(True)
         self.lbl_height_warning.setVisible(False)
         input_layout.addWidget(self.lbl_height_warning)
+
+
         
-        layout.addWidget(input_group)
+        center_layout.addWidget(card_input)
         
         # 3. Кнопка действия
         self.btn_convert = QPushButton("КОНВЕРТИРОВАТЬ")
         self.btn_convert.setFixedHeight(40)
+        self.btn_convert.setObjectName("actionButton")
         self.btn_convert.clicked.connect(self.convert)
-        layout.addWidget(self.btn_convert)
+        center_layout.addWidget(self.btn_convert)
         
         # 4. Секция результатов (МСК)
-        result_group = QGroupBox("Результат (МСК)")
-        result_layout = QVBoxLayout(result_group)
+        card_result = QFrame()
+        card_result.setObjectName("card")
+        result_layout = QVBoxLayout(card_result)
+        result_layout.setContentsMargins(15, 15, 15, 15)
+        
+        result_header = QHBoxLayout()
+        result_title = QLabel("Результат (МСК)")
+        result_title.setStyleSheet("font-weight: bold; color: #FFFFFF;")
+        result_header.addWidget(result_title)
+        result_header.addStretch()
+        btn_save_file = QPushButton("Сохранить в файл")
+        btn_save_file.clicked.connect(self.save_results_to_file)
+        result_header.addWidget(btn_save_file)
+        result_layout.addLayout(result_header)
         
         self.result_table = QTableWidget()
         self.result_table.setColumnCount(4)
         self.result_table.setHorizontalHeaderLabels(["ID", "X (Север)", "Y (Восток)", "H (Высота)"])
         self.result_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # self.result_table.setStyleSheet(...) # Removed inline style to use QSS
+        self.result_table.verticalHeader().setVisible(False)
         result_layout.addWidget(self.result_table)
         
-        btn_save_file = QPushButton("Сохранить в файл")
-        btn_save_file.clicked.connect(self.save_results_to_file)
-        result_layout.addWidget(btn_save_file, alignment=Qt.AlignRight)
+        center_layout.addWidget(card_result)
         
-        layout.addWidget(result_group)
+        main_layout.addWidget(center_column, stretch=1)
+
+        # === Right Column (Map) ===
+        right_column = QWidget()
+        right_layout = QVBoxLayout(right_column)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(15)
+
+        card_map = QFrame()
+        card_map.setObjectName("card")
+        map_layout = QVBoxLayout(card_map)
+        map_layout.setContentsMargins(15, 15, 15, 15)
+
+        map_header = QHBoxLayout()
+        map_title = QLabel("Карта")
+        map_title.setStyleSheet("font-weight: bold; color: #FFFFFF;")
+        map_header.addWidget(map_title)
+        map_header.addStretch()
+
+        # Чекбокс "Показать зону покрытия"
+        self.chk_show_polygon = QCheckBox("Показать зону покрытия")
+        self.chk_show_polygon.setStyleSheet("color: #FFFFFF;")
+        self.chk_show_polygon.setChecked(False)
+        self.chk_show_polygon.stateChanged.connect(self.refresh_map)
+        map_header.addWidget(self.chk_show_polygon)
+
+        map_layout.addLayout(map_header)
+
+        self.map_widget = MapWidget()
+        map_layout.addWidget(self.map_widget)
+
+        right_layout.addWidget(card_map)
+        main_layout.addWidget(right_column, stretch=2)
         
     def load_from_prj(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Открыть файл PRJ", "", "Projection Files (*.prj);;All Files (*)")
@@ -217,6 +297,65 @@ class WktConverterWidget(QWidget):
             
             logger.info(f"Конвертировано {len(results)} точек по WKT")
             
+            # Обновление карты
+            self.refresh_map(results_data=results)
+            
+            
         except Exception as e:
             logger.exception("Ошибка конвертации WKT")
             QMessageBox.critical(self, "Ошибка", str(e))
+
+    def refresh_map(self, results_data=None):
+        """
+        Обновляет карту. Если results_data не передан, пытается взять данные из полей ввода.
+        """
+        try:
+            points = []
+            # Если данные переданы (из convert), используем их (но нам нужны WGS координаты для карты)
+            # Карта рисует WGS точки.
+            
+            # Поэтому лучше всегда парсить ввод WGS
+            input_text = self.coords_input.toPlainText().strip()
+            if not input_text:
+                self.map_widget.update_map([], show_polygon=self.chk_show_polygon.isChecked())
+                return
+
+            lines = input_text.split('\n')
+            for line in lines:
+                line = line.strip()
+                if not line: continue
+                parts = line.split(',')
+                if len(parts) < 2: parts = line.split()
+                parts = [p.strip() for p in parts if p.strip()]
+                
+                if len(parts) >= 2:
+                    try:
+                        pt_id = ""
+                        lat = 0.0
+                        lon = 0.0
+                        
+                        if len(parts) >= 4:
+                            pt_id = parts[0]
+                            lat = float(parts[1])
+                            lon = float(parts[2])
+                        elif len(parts) == 3:
+                            lat = float(parts[0])
+                            lon = float(parts[1])
+                        elif len(parts) == 2:
+                            lat = float(parts[0])
+                            lon = float(parts[1])
+                            
+                        points.append((lat, lon, pt_id))
+                    except ValueError:
+                        if len(parts) == 3: # Try ID, Lat, Lon
+                             try:
+                                pt_id = parts[0]
+                                lat = float(parts[1])
+                                lon = float(parts[2])
+                                points.append((lat, lon, pt_id))
+                             except: pass
+            
+            self.map_widget.update_map(points, show_polygon=self.chk_show_polygon.isChecked())
+            
+        except Exception as e:
+            logger.exception("Ошибка обновления карты")

@@ -1,41 +1,64 @@
-from PySide6.QtWidgets import QWidget, QGridLayout, QLabel, QTextEdit, QPushButton, QGroupBox, QFileDialog
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QWidget, QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QPushButton, QFrame, QFileDialog
+from PySide6.QtCore import Qt, Signal
 
 class CoordsWidget(QWidget):
+    wgs_changed = Signal()
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setup_ui()
 
     def setup_ui(self):
         layout = QGridLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(20)
         
         # Секция WGS84
-        wgs_group = QGroupBox("WGS84 (ID, Lat, Lon, H)")
-        wgs_layout = QGridLayout(wgs_group)
+        wgs_card = QFrame()
+        wgs_card.setObjectName("card_square")
+        wgs_layout = QVBoxLayout(wgs_card)
+        wgs_layout.setContentsMargins(15, 15, 15, 15)
         
-        self.btn_load_wgs = QPushButton("Загрузить из файла")
+        wgs_header = QHBoxLayout()
+        wgs_title = QLabel("WGS84 (ID, Lat, Lon, H)")
+        wgs_title.setStyleSheet("font-weight: bold; color: #FFFFFF;")
+        wgs_header.addWidget(wgs_title)
+        wgs_header.addStretch()
+        self.btn_load_wgs = QPushButton("Загрузить")
+        self.btn_load_wgs.setFixedWidth(100)
         self.btn_load_wgs.clicked.connect(lambda: self.load_file(self.text_wgs))
-        wgs_layout.addWidget(self.btn_load_wgs, 0, 0)
+        wgs_header.addWidget(self.btn_load_wgs)
+        wgs_layout.addLayout(wgs_header)
         
         self.text_wgs = QTextEdit()
         self.text_wgs.setPlaceholderText("1,55.9132151,28.7827337,148.13\n...")
-        wgs_layout.addWidget(self.text_wgs, 1, 0)
+        self.text_wgs.textChanged.connect(self.wgs_changed.emit)
+        wgs_layout.addWidget(self.text_wgs)
         
-        layout.addWidget(wgs_group, 0, 0)
+        layout.addWidget(wgs_card, 0, 0)
         
         # Секция МСК
-        msk_group = QGroupBox("МСК (ID, x, y, h)")
-        msk_layout = QGridLayout(msk_group)
+        msk_card = QFrame()
+        msk_card.setObjectName("card_square")
+        msk_layout = QVBoxLayout(msk_card)
+        msk_layout.setContentsMargins(15, 15, 15, 15)
         
-        self.btn_load_msk = QPushButton("Загрузить из файла")
+        msk_header = QHBoxLayout()
+        msk_title = QLabel("МСК (ID, x, y, h)")
+        msk_title.setStyleSheet("font-weight: bold; color: #FFFFFF;")
+        msk_header.addWidget(msk_title)
+        msk_header.addStretch()
+        self.btn_load_msk = QPushButton("Загрузить")
+        self.btn_load_msk.setFixedWidth(100)
         self.btn_load_msk.clicked.connect(lambda: self.load_file(self.text_msk))
-        msk_layout.addWidget(self.btn_load_msk, 0, 0)
+        msk_header.addWidget(self.btn_load_msk)
+        msk_layout.addLayout(msk_header)
         
         self.text_msk = QTextEdit()
         self.text_msk.setPlaceholderText("1,7686.0995773235,-8996.72764806,128.313878864\n...")
-        msk_layout.addWidget(self.text_msk, 1, 0)
+        msk_layout.addWidget(self.text_msk)
         
-        layout.addWidget(msk_group, 0, 1)
+        layout.addWidget(msk_card, 0, 1)
 
     def load_file(self, text_widget):
         filename, _ = QFileDialog.getOpenFileName(self, "Открыть файл", "", "Text Files (*.txt);;CSV Files (*.csv);;All Files (*.*)")

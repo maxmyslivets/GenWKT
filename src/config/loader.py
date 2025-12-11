@@ -72,6 +72,23 @@ class ConfigLoader:
             return value
         except (KeyError, TypeError):
             return default
+
+    def set(self, key: str, value: Any):
+        """Set a configuration value by key (dot notation supported) and save."""
+        keys = key.split(".")
+        config = self._config
+        for k in keys[:-1]:
+            config = config.setdefault(k, {})
+        config[keys[-1]] = value
+        self._save_config()
+
+    def _save_config(self):
+        """Save configuration to JSON file."""
+        try:
+            with open(self._config_path, "w", encoding="utf-8") as f:
+                json.dump(self._config, f, indent=4)
+        except Exception as e:
+            print(f"Failed to save configuration: {e}", file=sys.stderr)
     
     @property
     def user_dir(self) -> Path:
